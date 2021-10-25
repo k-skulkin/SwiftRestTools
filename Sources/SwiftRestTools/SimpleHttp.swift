@@ -52,7 +52,7 @@ public class SimpleHttp: NSObject {
         authHeaders += self.headers
         config.httpAdditionalHeaders = authHeaders
         
-        print("Curl = \(curlRequestWithURL(url:url.absoluteString, headers:authHeaders))")
+        //print("Curl = \(curlRequestWithURL(url:url.absoluteString, headers:authHeaders))")
         
         let session: URLSession = URLSession(configuration: config, delegate: nil, delegateQueue: nil)
         
