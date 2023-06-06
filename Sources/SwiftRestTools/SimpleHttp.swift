@@ -42,8 +42,7 @@ public class SimpleHttp: NSObject {
 		completionHandler: @escaping (Result<Data, RestClientError>) -> Void
 	) {
         let request = URLRequest(url: url)
-        let config = URLSessionConfiguration.default
-        
+
         var authHeaders = [String: String]()
 
 		if let auth {
@@ -52,7 +51,9 @@ public class SimpleHttp: NSObject {
             let authString = "Basic \(base64EncodedCredential)"
             authHeaders["Authorization"] = authString
         }
-        authHeaders += self.headers
+        authHeaders += headers
+
+		let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = authHeaders
         
         print("Curl = \(curlRequestWithURL(url:url.absoluteString, headers:authHeaders))")
@@ -100,13 +101,12 @@ public class SimpleHttp: NSObject {
         
         var authHeaders = [String: String]()
 
-        if let auth {
-            let userPasswordData = "\(auth.username):\(auth.password)".data(using: .utf8)
-            let base64EncodedCredential = userPasswordData!.base64EncodedString(options: Data.Base64EncodingOptions.init(rawValue: 0))
-            let authString = "Basic \(base64EncodedCredential)"
-            authHeaders["authorization"] = authString
-        }
-
+		if let auth {
+			let userPasswordData = "\(auth.username):\(auth.password)".data(using: .utf8)
+			let base64EncodedCredential = userPasswordData!.base64EncodedString()
+			let authString = "Basic \(base64EncodedCredential)"
+			authHeaders["Authorization"] = authString
+		}
         authHeaders += headers
         
         let config = URLSessionConfiguration.default
@@ -114,6 +114,8 @@ public class SimpleHttp: NSObject {
         
         let data = try! JSONEncoder().encode(payload)
         request.httpBody = data
+
+		print("Curl = \(curlRequestWithURL(url: url.absoluteString, headers:authHeaders))")
         
         let task = URLSession.shared.dataTask(
 			with: request
