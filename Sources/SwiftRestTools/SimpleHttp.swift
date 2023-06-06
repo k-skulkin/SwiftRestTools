@@ -37,55 +37,77 @@ public class SimpleHttp: NSObject {
         self.headers = headers
     }
     
-    func getData(url: URL, completionBlock:(@escaping (Data) -> Void), errorBlock:(@escaping (RestClientError) -> Void)){
+    func get(
+		url: URL,
+		completionHandler: @escaping (Result<Data, RestClientError>) -> Void
+	) {
         let request = URLRequest(url: url)
-        
         let config = URLSessionConfiguration.default
         
         var authHeaders = [String: String]()
-        if let auth = self.auth {
+
+		if let auth {
             let userPasswordData = "\(auth.username):\(auth.password)".data(using: .utf8)
-            let base64EncodedCredential = userPasswordData!.base64EncodedString(options: Data.Base64EncodingOptions.init(rawValue: 0))
+            let base64EncodedCredential = userPasswordData!.base64EncodedString()
             let authString = "Basic \(base64EncodedCredential)"
-            authHeaders["authorization"] = authString
+            authHeaders["Authorization"] = authString
         }
         authHeaders += self.headers
         config.httpAdditionalHeaders = authHeaders
         
-        //print("Curl = \(curlRequestWithURL(url:url.absoluteString, headers:authHeaders))")
+        print("Curl = \(curlRequestWithURL(url:url.absoluteString, headers:authHeaders))")
         
         let session: URLSession = URLSession(configuration: config, delegate: nil, delegateQueue: nil)
         
-        let task = session.dataTask(with: request, completionHandler: { data, response, error in
+        let task = session.dataTask(
+			with: request
+		) { data, response, error in
             if let error = error {
                 print("Error while trying to re-authenticate the user: \(error)")
-                errorBlock(.serviceError(error)) //Error
-            } else if let response = response as? HTTPURLResponse,
-                300..<600 ~= response.statusCode {
-                errorBlock(.statusCode(response.statusCode)) //Error
-            } else if let data = data {
-                completionBlock(data) //Success
+				completionHandler(
+					.failure(.serviceError(error))
+				)
+            } else if
+				let response = response as? HTTPURLResponse,
+                300..<600 ~= response.statusCode
+			{
+				completionHandler(
+					.failure(.statusCode(response.statusCode))
+				)
+            } else if let data {
+				completionHandler(
+					.success(data)
+				)
             } else {
-                errorBlock(.noData) //Error
+				completionHandler(
+					.failure(.noData)
+				)
             }
-        })
+        }
         
         task.resume()
     }
+
+	// MARK: Post
     
-    func peformJSONPost<T>(url: URL, payload: T, completionBlock:@escaping ((Data) -> Void), errorBlock:(@escaping (RestClientError) -> Void))  where T : Encodable {
-        
+    func post<T>(
+		url: URL,
+		payload: T,
+		completionHandler: @escaping (Result<Data, RestClientError>) -> Void
+	)  where T : Encodable {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         
         var authHeaders = [String: String]()
-        if let auth = self.auth {
+
+        if let auth {
             let userPasswordData = "\(auth.username):\(auth.password)".data(using: .utf8)
             let base64EncodedCredential = userPasswordData!.base64EncodedString(options: Data.Base64EncodingOptions.init(rawValue: 0))
             let authString = "Basic \(base64EncodedCredential)"
             authHeaders["authorization"] = authString
         }
-        authHeaders += self.headers
+
+        authHeaders += headers
         
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = authHeaders
@@ -93,39 +115,56 @@ public class SimpleHttp: NSObject {
         let data = try! JSONEncoder().encode(payload)
         request.httpBody = data
         
-        let task = URLSession.shared.dataTask(with: request as URLRequest) { (data, response, error) in
-            
+        let task = URLSession.shared.dataTask(
+			with: request
+		) { (data, response, error) in
             if let error = error {
-                errorBlock(.serviceError(error))
-                return
+                return completionHandler(
+					.failure(.serviceError(error))
+				)
             }
             
             guard let data = data else {
-                errorBlock(.noData)
-                return
+				return completionHandler(
+					.failure(.noData)
+				)
             }
 
             guard let response = response else {
-                return errorBlock(.noResponse)
+				return completionHandler(
+					.failure(.noResponse)
+				)
             }
 
             guard let httpResponse = response as? HTTPURLResponse else {
-				return errorBlock(.failedHTTPURLResponseParsing)
+				return completionHandler(
+					.failure(.failedHTTPURLResponseParsing)
+				)
             }
 
             guard let urlString = String(data: data, encoding: .utf8) else {
-				return errorBlock(.failedDataParsing)
+				return completionHandler(
+					.failure(.failedDataParsing)
+				)
             }
 
 			guard (200...299).contains(httpResponse.statusCode) else {
-				return errorBlock(.wrongStatusCode("Status code \(httpResponse.statusCode) returned. Data: \(urlString)"))
+				return completionHandler(
+					.failure(
+						.wrongStatusCode("Status code \(httpResponse.statusCode) returned. Data: \(urlString)")
+					)
+				)
 			}
 
-            completionBlock(data)
+			completionHandler(
+				.success(data)
+			)
         }
         task.resume()
     }
-    
+
+	// MARK: Upload
+	
     func uploadFile(fileUrl: URL, destinationURL: URL, completionBlock:(@escaping (Data) -> Void), errorBlock:(@escaping (RestClientError) -> Void)){
         
         let fileName = (fileUrl.path as NSString).lastPathComponent

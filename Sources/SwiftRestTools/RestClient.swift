@@ -40,36 +40,71 @@ open class RestClient: NSObject {
         self.auth = auth
         self.headers = headers
     }
+
+	// MARK: Get
     
-    public func getData(relativeURL: String, completionBlock:@escaping ((Data) -> Void), errorBlock:(@escaping (RestClientError) -> Void)){
+    public func get(
+		relativeURL: String,
+		completionHandler: @escaping (Result<Data, RestClientError>) -> Void
+	) {
         let urlString = baseURL.appending(relativeURL)
-        getData(fullURL:urlString, completionBlock:completionBlock, errorBlock:errorBlock)
+
+		get(fullURL: urlString, completionHandler: completionHandler)
     }
     
-    public func getData(fullURL: String, completionBlock:@escaping ((Data) -> Void), errorBlock:(@escaping (RestClientError) -> Void)){
-        var headersToSet = ["Content-Type":"application/json", "Accept":"application/json"]
-        if let headers = self.headers {
+    public func get(
+		fullURL: String,
+		completionHandler: @escaping (Result<Data, RestClientError>) -> Void
+	) {
+        var headersToSet = [
+			"Content-Type": "application/json",
+			"Accept": "application/json"
+		]
+
+        if let headers {
             headersToSet += headers
         }
-        let http = SimpleHttp(auth:self.auth, headers:headersToSet);
+
+        let http = SimpleHttp(
+			auth: auth,
+			headers: headersToSet
+		)
+
         let url = URL(string: fullURL)!
-        http.getData(url:url, completionBlock:completionBlock, errorBlock:errorBlock)
+		
+        http.get(url: url, completionHandler: completionHandler)
     }
+
+	// MARK: Post
     
-    public func peformJSONPost<T>(relativeURL: String, payload: T, completionBlock:@escaping ((Data) -> Void), errorBlock:(@escaping (RestClientError) -> Void))  where T : Encodable {
+    public func post<T>(
+		relativeURL: String,
+		payload: T,
+		completionHandler: @escaping (Result<Data, RestClientError>) -> Void
+	)  where T: Encodable {
         let urlString = baseURL.appending(relativeURL)
-        peformJSONPost(fullURL: urlString, payload: payload, completionBlock: completionBlock, errorBlock: errorBlock)
+
+		post(fullURL: urlString, payload: payload, completionHandler: completionHandler)
     }
     
-    public func peformJSONPost<T>(fullURL: String, payload: T, completionBlock:@escaping ((Data) -> Void), errorBlock:(@escaping (RestClientError) -> Void))  where T : Encodable {
+    public func post<T>(
+		fullURL: String,
+		payload: T,
+		completionHandler: @escaping (Result<Data, RestClientError>) -> Void
+	) where T : Encodable {
         var headersToSet = ["Content-Type":"application/json", "Accept":"application/json"]
-        if let headers = self.headers {
+
+        if let headers {
             headersToSet += headers
         }
-        let http = SimpleHttp(auth:self.auth, headers:headersToSet);
+
+        let http = SimpleHttp(auth: auth, headers: headersToSet)
         let url = URL(string: fullURL)!
-        http.peformJSONPost(url: url, payload: payload, completionBlock: completionBlock, errorBlock: errorBlock)
+
+		http.post(url: url, payload: payload, completionHandler: completionHandler)
     }
+
+	// MARK: Upload
 
     public func uploadFile(filePath: String, relativeDestinationPath: String, completionBlock:@escaping ((Data) -> Void), errorBlock:(@escaping (RestClientError) -> Void)){
         let fullDestinationPath = baseURL.appending(relativeDestinationPath)
