@@ -92,7 +92,10 @@ open class RestClient: NSObject {
 		payload: T,
 		completionHandler: @escaping (Result<Data, RestClientError>) -> Void
 	) where T : Encodable {
-        var headersToSet = ["Content-Type":"application/json", "Accept":"application/json"]
+        var headersToSet = [
+			"Content-Type": "application/json",
+			"Accept": "application/json"
+		]
 
         if let headers {
             headersToSet += headers

@@ -98,24 +98,25 @@ public class SimpleHttp: NSObject {
 	)  where T : Encodable {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        
-        var authHeaders = [String: String]()
+
+		let data = try! JSONEncoder().encode(payload)
+		request.httpBody = data
+
+        var headers = [String: String]()
 
 		if let auth {
 			let userPasswordData = "\(auth.username):\(auth.password)".data(using: .utf8)
 			let base64EncodedCredential = userPasswordData!.base64EncodedString()
 			let authString = "Basic \(base64EncodedCredential)"
-			authHeaders["Authorization"] = authString
+			headers["Authorization"] = authString
 		}
-        authHeaders += headers
-        
-        let config = URLSessionConfiguration.default
-        config.httpAdditionalHeaders = authHeaders
-        
-        let data = try! JSONEncoder().encode(payload)
-        request.httpBody = data
+		headers += self.headers
 
-		print("Curl = \(curlRequestWithURL(url: url.absoluteString, headers:authHeaders))")
+		headers.forEach { (key: String, value: String) in
+			request.addValue(value, forHTTPHeaderField: key)
+		}
+
+		print("Curl = \(curlRequestWithURL(url: url.absoluteString, headers: headers))")
         
         let task = URLSession.shared.dataTask(
 			with: request
