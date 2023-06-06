@@ -12,7 +12,11 @@ public enum RestClientError: Error {
     case serviceError(Error)
     case statusCode(Int)
     case noData
+	case noResponse
+	case failedHTTPURLResponseParsing
+	case failedDataParsing
     case deserialization(Error)
+	case wrongStatusCode(String)
 }
 
 open class RestClient: NSObject {

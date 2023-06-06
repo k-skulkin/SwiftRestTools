@@ -104,27 +104,23 @@ public class SimpleHttp: NSObject {
                 errorBlock(.noData)
                 return
             }
-//
-//            guard let response = response else {
-//                errorBlock(self.genericError(errorInformation: "No response returned"))
-//                return
-//            }
-//
-//            guard let httpResponse = response as? HTTPURLResponse else {
-//                errorBlock(self.genericError(errorInformation: "Could not translate response to HTTPURLResponse: \(response.self)"))
-//                return
-//            }
-//
-//            guard let urlString = String(data: data, encoding: .utf8) else{
-//                errorBlock(self.genericError(errorInformation: "No URL from Data"))
-//                return
-//            }
-//
-//            guard httpResponse.statusCode == 200 else {
-//                errorBlock(self.genericError(errorInformation: "Status code \(httpResponse.statusCode) returned. Data: \(urlString)"))
-//                return
-//            }
-//
+
+            guard let response = response else {
+                return errorBlock(.noResponse)
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+				return errorBlock(.failedHTTPURLResponseParsing)
+            }
+
+            guard let urlString = String(data: data, encoding: .utf8) else {
+				return errorBlock(.failedDataParsing)
+            }
+
+			guard (200...299).contains(httpResponse.statusCode) else {
+				return errorBlock(.wrongStatusCode("Status code \(httpResponse.statusCode) returned. Data: \(urlString)"))
+			}
+
             completionBlock(data)
         }
         task.resume()
